@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".MainActivity">
-
+    
     <Button
         android:id="@+id/button2"
         android:layout_width="match_parent"
@@ -19,7 +19,8 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="textPersonName"
-        android:text="@string/default_date" />
+        android:text="@string/default_date"
+        android:importantForAutofill="no" />
 
     <TextView
         android:id="@+id/textView"

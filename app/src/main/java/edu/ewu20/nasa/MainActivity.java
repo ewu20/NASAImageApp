@@ -3,10 +3,8 @@ package edu.ewu20.nasa;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -14,152 +12,185 @@ import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.ImageRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import java.util.Arrays;
-
 public class MainActivity extends AppCompatActivity {
-    public final String API = "Zy4Xq7fcdknG12rph9X0QF8ofutah5IkqlaB0n8F";
-    public final String URL_BASE = "https://api.nasa.gov/planetary/apod";
+    private String API_KEY;
+    private String URL_BASE;
+    private String ERROR_TEXT;
+    private String DEFAULT_DATE;
     private RequestQueue requestQueue;
     private ImageView imageView;
-    private TextView tv;
-    private Button butt;
-    private EditText et;
+    private TextView textView;
+    private Button mainButton;
+    private EditText editText;
+    private JsonParser parser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        requestQueue = Volley.newRequestQueue(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Button b = findViewById(R.id.button2);
-        butt = b;
-        et = findViewById(R.id.editText);
-        clearText();
-        doAPI();
-        tv = findViewById(R.id.textView);
+        requestQueue = Volley.newRequestQueue(this);
+        // initialize fields
+        mainButton = findViewById(R.id.button2);
+        editText = findViewById(R.id.editText);
+        textView = findViewById(R.id.textView);
         imageView = findViewById(R.id.imageView);
-        b.setOnClickListener(view -> doAPI());
+        ERROR_TEXT = getString(R.string.error_text);
+        DEFAULT_DATE = getString(R.string.default_date);
+        API_KEY = getString(R.string.api_key);
+        URL_BASE = getString(R.string.url_base);
+        parser = new JsonParser();
+        // set text box values and find first image
+        clearTextField();
+        doAPI();
+        mainButton.setOnClickListener(view -> doAPI());
     }
 
-
+    /*
+     *  Begin Android UI initialization functions
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
+    /*
+     * End Android UI initialization functions
+     */
 
-    public void doImageStuff(String address) {
+    /*
+     * Begin helper functions
+     */
+    private void doImageRequest(String address) {
         try {
             ImageRequest request = new ImageRequest(
                     address,
-                    response -> {
-                        putImageOnScreen(response);
-                    },
+                    response -> imageView.setImageBitmap(response),
                     imageView.getWidth(),
                     imageView.getHeight(),
                     ImageView.ScaleType.FIT_CENTER,
                     Bitmap.Config.RGB_565,
-                    error -> {
-                        tv.setText("error in getting");
-                    });
+                    error -> putErrorInTextView("ImageRequest inside"));
             requestQueue.add(request);
         } catch (Exception e) {
-            tv.setText("other error");
+            putErrorInTextView("ImageRequest outside");
         }
     }
 
-    private String getImageLoc(String json) {
+    private String getImageAddress(String json) {
         try {
-            JsonParser parser = new JsonParser();
-            JsonObject e = parser.parse(json).getAsJsonObject();
-            String s = e.get("url").getAsString();
-            return s;
+            return parser.parse(json)
+                    .getAsJsonObject()
+                    .get("url")
+                    .getAsString();
         } catch (Exception e) {
-            return "";
+            return null;
         }
     }
-    private void putImageOnScreen(final Bitmap b) {
-        imageView.setImageBitmap(b);
-    }
-    private void doCap(String json) {
+
+    private void setCaptionAndTitle(String json) {
         try {
-            JsonParser parser = new JsonParser();
-            JsonObject e = parser.parse(json).getAsJsonObject();
-            String c = e.get("explanation").getAsString();
-            tv.setText(c);
-            String t = e.get("title").getAsString();
-            butt.setText(t);
-        } catch (Exception e) {}
+            String caption = parser.parse(json)
+                    .getAsJsonObject()
+                    .get("explanation")
+                    .getAsString();
+            textView.setText(caption);
+            String title = parser.parse(json)
+                    .getAsJsonObject()
+                    .get("title")
+                    .getAsString();
+            mainButton.setText(title);
+        } catch (Exception e) {
+            putErrorInTextView("Setting title and caption");
+        }
     }
-    private void clearText() {
-        et.setText("YYYY-MM-DD");
+
+    private void clearTextField() {
+        editText.setText(DEFAULT_DATE);
     }
+
     private void doAPI() {
         try {
-            String apiLoc = URL_BASE + "?api_key=" + API;
-            if (valiDATE(et.getText().toString())) {
-                apiLoc += "&date=" + et.getText().toString();
+            String apiURL = URL_BASE + "?api_key=" + API_KEY;
+            String textInBox = getEditableText();
+            if (valiDATE(textInBox)) {
+                // if valid date in box, add date parameter
+                apiURL += "&date=" + textInBox;
             }
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
                     Request.Method.GET,
-                    apiLoc,
+                    apiURL,
                     null,
                     response -> {
-                        tv.setText(response.toString());
-                        // CALL IMAGE WITH ADDRESS FROM JSON
-                        doImageStuff(getImageLoc(response.toString()));
-                        doCap(response.toString());
-                        Log.d("TAG", response.toString());
+                        doImageRequest(getImageAddress(response.toString()));
+                        setCaptionAndTitle(response.toString());
                     }, error -> {
-                        clearText();
+                        clearTextField();
                         doAPI();
                     });
             requestQueue.add(jsonObjectRequest);
         } catch (Exception e) {
-            tv.setText(Arrays.deepToString(e.getStackTrace()));
+            putErrorInTextView("API Call" + e.toString());
         }
     }
-    private boolean valiDATE(String s) {
+
+    private boolean valiDATE(String date) {
         try {
-            String[] splot = s.split("-");
-            int y = Integer.parseInt(splot[0]);
-            int m = Integer.parseInt(splot[1]);
-            int d = Integer.parseInt(splot[2]);
-            if (y >= 1995
-            && y <= 2019
-            && m > 0
-            && m < 13
-            && d > 0
-            && d < 32) {
-                return true;
-            } else {
-                clearText();
-                return false;
+            String[] pieces = date.split("-");
+            int year = Integer.parseInt(pieces[0]);
+            int month = Integer.parseInt(pieces[1]);
+            int day = Integer.parseInt(pieces[2]);
+            if (year > 1994 && year <= 2019) {
+                if (month > 0 && month < 13 && day > 0) {
+                    switch (month) {
+                        case 1:
+                        case 3:
+                        case 5:
+                        case 7:
+                        case 8:
+                        case 10:
+                        case 12:
+                            return day <= 31;
+                        case 4:
+                        case 6:
+                        case 9:
+                        case 11:
+                            return day <= 30;
+                        case 2:
+                            return day <= 29;
+                        default:
+                            break;
+                    }
+                }
             }
+            clearTextField();
+            return false;
         } catch (Exception e) {
+            clearTextField();
             return false;
         }
+    }
+
+    private void putErrorInTextView(String arg) {
+        String toSet = ERROR_TEXT + "\n" + arg;
+        textView.setText(toSet);
+        clearTextField();
+    }
+
+    private String getEditableText() {
+        return editText.getText().toString();
     }
 }
