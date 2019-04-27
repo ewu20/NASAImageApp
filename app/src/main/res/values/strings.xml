@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">NASA Image of the Day</string>
     <string name="action_settings">Settings</string>
+    <string name="error_text">An error occurred, check internet connection and valid date.</string>
+    <string name="default_date">YYYY-MM-DD</string>
+    <string name="api_key">Zy4Xq7fcdknG12rph9X0QF8ofutah5IkqlaB0n8F</string>
+    <string name="url_base">https://api.nasa.gov/planetary/apod</string>
+    <string name="default_text">Default alternate text</string>
+    <string name="default_button">Image Title</string>
 </resources>
